@@ -23,7 +23,10 @@ AFR_VERSION = "1.2.0"
 
 AFR_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 AFR_MODEL_DIR = os.path.join(AFR_DIR, "models")
-FACE_LANDMARKER_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float32/latest/face_landmarker.task"
+FACE_LANDMARKER_MODEL_URLS = [
+    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float32/1/face_landmarker.task",
+]
 FACE_LANDMARKER_MODEL_PATH = os.path.join(AFR_MODEL_DIR, "face_landmarker.task")
 
 LANG_EN = {
@@ -251,17 +254,22 @@ def pil_to_cv2(pil_image: Image.Image) -> np.ndarray:
 
 
 def ensure_face_landmarker_model() -> str:
-    if not os.path.exists(FACE_LANDMARKER_MODEL_PATH):
-        os.makedirs(AFR_MODEL_DIR, exist_ok=True)
-        print(f"[AFR] Downloading FaceLandmarker model from Google...")
+    if os.path.exists(FACE_LANDMARKER_MODEL_PATH):
+        return FACE_LANDMARKER_MODEL_PATH
+    os.makedirs(AFR_MODEL_DIR, exist_ok=True)
+    last_error = None
+    for url in FACE_LANDMARKER_MODEL_URLS:
+        print(f"[AFR] Downloading FaceLandmarker model from {url}...")
         try:
-            urllib.request.urlretrieve(FACE_LANDMARKER_MODEL_URL, FACE_LANDMARKER_MODEL_PATH)
+            urllib.request.urlretrieve(url, FACE_LANDMARKER_MODEL_PATH)
             print(f"[AFR] Model downloaded to {FACE_LANDMARKER_MODEL_PATH}")
+            return FACE_LANDMARKER_MODEL_PATH
         except Exception as e:
+            print(f"[AFR] Download failed from {url}: {e}")
+            last_error = e
             if os.path.exists(FACE_LANDMARKER_MODEL_PATH):
                 os.remove(FACE_LANDMARKER_MODEL_PATH)
-            raise RuntimeError(f"[AFR] Failed to download FaceLandmarker model: {e}")
-    return FACE_LANDMARKER_MODEL_PATH
+    raise RuntimeError(f"[AFR] Failed to download FaceLandmarker model from all URLs. Last error: {last_error}")
 
 
 def _detect_mediapipe_legacy(image_cv2: np.ndarray, min_detection_confidence: float):
@@ -341,9 +349,9 @@ def _detect_opencv_haar(image_cv2: np.ndarray, min_detection_confidence: float):
     gray = cv2.cvtColor(image_cv2, cv2.COLOR_BGR2GRAY)
     face_rects = face_cascade.detectMultiScale(
         gray,
-        scaleFactor=1.05,
-        minNeighbors=5,
-        minSize=(64, 64),
+        scaleFactor=1.01,
+        minNeighbors=3,
+        minSize=(32, 32),
     )
 
     if len(face_rects) == 0:
