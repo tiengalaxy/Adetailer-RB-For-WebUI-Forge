@@ -795,38 +795,67 @@ def mask_cv2_to_pil(mask_cv2: np.ndarray) -> Image.Image:
     return pil_mask
 
 
+def _scan_model_dir():
+    try:
+        from modules import paths
+        model_dir = os.path.join(paths.models_path, "Stable-diffusion")
+    except Exception:
+        model_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "models", "Stable-diffusion")
+    if not os.path.isdir(model_dir):
+        return []
+    results = []
+    for root, dirs, files in os.walk(model_dir):
+        for f in files:
+            if f.lower().endswith((".safetensors", ".ckpt", ".gguf")):
+                rel = os.path.relpath(os.path.join(root, f), model_dir)
+                rel = rel.replace("\\", "/")
+                results.append(rel)
+    results.sort()
+    return results
+
+
 def get_checkpoint_list():
     checkpoints = []
     try:
         from modules import sd_models
         if hasattr(sd_models, "checkpoint_tiles"):
-            checkpoints = list(sd_models.checkpoint_tiles())
-            if checkpoints:
-                return checkpoints
+            tiles = list(sd_models.checkpoint_tiles())
+            if tiles:
+                checkpoints = tiles
+                print(f"[AFR] checkpoint_tiles returned {len(tiles)} models")
     except Exception as e:
         print(f"[AFR] checkpoint_tiles failed: {e}")
-    try:
-        from modules import sd_models
-        if hasattr(sd_models, "checkpoints_list") and sd_models.checkpoints_list:
-            checkpoints = list(sd_models.checkpoints_list.keys())
-            if checkpoints:
-                return checkpoints
-    except Exception as e:
-        print(f"[AFR] checkpoints_list keys failed: {e}")
-    try:
-        from modules import sd_models
-        if hasattr(sd_models, "checkpoint_titles"):
-            checkpoints = list(sd_models.checkpoint_titles())
-            if checkpoints:
-                return checkpoints
-    except Exception as e:
-        print(f"[AFR] checkpoint_titles failed: {e}")
-    try:
-        current = getattr(shared.opts, "sd_model_checkpoint", None)
-        if current:
-            return [current]
-    except Exception:
-        pass
+    if not checkpoints:
+        try:
+            from modules import sd_models
+            if hasattr(sd_models, "checkpoints_list") and sd_models.checkpoints_list:
+                checkpoints = list(sd_models.checkpoints_list.keys())
+                print(f"[AFR] checkpoints_list returned {len(checkpoints)} models")
+        except Exception as e:
+            print(f"[AFR] checkpoints_list failed: {e}")
+    if not checkpoints:
+        try:
+            from modules import sd_models
+            if hasattr(sd_models, "checkpoint_titles"):
+                checkpoints = list(sd_models.checkpoint_titles())
+                print(f"[AFR] checkpoint_titles returned {len(checkpoints)} models")
+        except Exception as e:
+            print(f"[AFR] checkpoint_titles failed: {e}")
+    if not checkpoints:
+        scanned = _scan_model_dir()
+        if scanned:
+            checkpoints = scanned
+            print(f"[AFR] Directory scan found {len(scanned)} models")
+    if not checkpoints:
+        try:
+            current = getattr(shared.opts, "sd_model_checkpoint", None)
+            if current:
+                checkpoints = [current]
+                print(f"[AFR] Fallback: using current model only: {current}")
+        except Exception:
+            pass
+    if not checkpoints:
+        print("[AFR] WARNING: No checkpoints found at all!")
     return checkpoints
 
 
