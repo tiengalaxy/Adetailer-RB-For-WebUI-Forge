@@ -280,25 +280,57 @@ def change_torch_load():
         torch.load = orig
 
 
+def _load_checkpoint(checkpoint_name):
+    try:
+        from modules import sd_models
+        if hasattr(sd_models, "load_model"):
+            sd_models.load_model(checkpoint_name)
+            return
+    except Exception as e:
+        print(f"[AFR] sd_models.load_model failed: {e}")
+    try:
+        shared.opts.sd_model_checkpoint = checkpoint_name
+        from modules import sd_models as sm
+        if hasattr(sm, "reload_model_weights"):
+            sm.reload_model_weights()
+            return
+    except Exception as e:
+        print(f"[AFR] reload_model_weights failed: {e}")
+    try:
+        shared.opts.sd_model_checkpoint = checkpoint_name
+        from modules import sd_models as sm
+        model_data = getattr(sm, "model_data", None)
+        if model_data is not None and hasattr(model_data, "load"):
+            model_data.load(checkpoint_name)
+            return
+    except Exception as e:
+        print(f"[AFR] model_data.load failed: {e}")
+    raise RuntimeError(f"[AFR] All model loading methods failed for: {checkpoint_name}")
+
+
 @contextmanager
 def switch_model_context(checkpoint_name):
     if checkpoint_name is None:
         yield
         return
+    current_info = getattr(shared.opts, "sd_model_checkpoint", None)
+    if current_info == checkpoint_name:
+        yield
+        return
     try:
-        from modules import sd_models
-        current_info = getattr(shared.opts, "sd_model_checkpoint", None)
-        if current_info == checkpoint_name:
-            yield
-            return
         print(f"[AFR] Switching model to: {checkpoint_name}")
-        sd_models.load_model(checkpoint_name)
+        _load_checkpoint(checkpoint_name)
         yield
         print(f"[AFR] Restoring model to: {current_info}")
-        sd_models.load_model(current_info)
+        _load_checkpoint(current_info)
     except Exception as e:
         print(f"[AFR] Model switch failed: {e}")
         traceback.print_exc()
+        try:
+            if current_info:
+                _load_checkpoint(current_info)
+        except Exception:
+            pass
         yield
 
 
@@ -764,12 +796,28 @@ def mask_cv2_to_pil(mask_cv2: np.ndarray) -> Image.Image:
 
 
 def get_checkpoint_list():
+    checkpoints = []
     try:
         from modules import sd_models
-        checkpoint_list = sd_models.checkpoint_titles()
-        return list(checkpoint_list)
-    except Exception:
-        return []
+        if hasattr(sd_models, "checkpoint_titles"):
+            checkpoints = list(sd_models.checkpoint_titles())
+        elif hasattr(sd_models, "get_checkpoint_names"):
+            checkpoints = list(sd_models.get_checkpoint_names())
+    except Exception as e:
+        print(f"[AFR] Failed to get checkpoint list via sd_models: {e}")
+    if not checkpoints:
+        try:
+            checkpoints = list(shared.opts.data.get("sd_model_checkpoint_options", []))
+        except Exception:
+            pass
+    if not checkpoints:
+        try:
+            current = getattr(shared.opts, "sd_model_checkpoint", None)
+            if current:
+                checkpoints = [current]
+        except Exception:
+            pass
+    return checkpoints
 
 
 def get_sampler_list():
@@ -985,6 +1033,7 @@ class AdvancedFaceRefinerScript(scripts.Script):
         steps: int,
         cfg_scale: float,
         sampler_name: str,
+        checkpoint_name: str | None,
         prompt_str: str,
         negative_prompt_str: str,
         mask_blur: int,
@@ -997,6 +1046,10 @@ class AdvancedFaceRefinerScript(scripts.Script):
         actual_steps = steps if steps > 0 else p.steps
         actual_cfg = cfg_scale if cfg_scale > 0 else p.cfg_scale
         actual_sampler = sampler_name if sampler_name else p.sampler_name
+
+        override_settings = {}
+        if checkpoint_name:
+            override_settings["sd_model_checkpoint"] = checkpoint_name
 
         i2i = StableDiffusionProcessingImg2Img(
             init_images=[image],
@@ -1031,7 +1084,7 @@ class AdvancedFaceRefinerScript(scripts.Script):
             extra_generation_params=p.extra_generation_params,
             do_not_save_samples=True,
             do_not_save_grid=True,
-            override_settings={},
+            override_settings=override_settings,
         )
 
         i2i.cached_c = [None, None]
@@ -1083,7 +1136,7 @@ class AdvancedFaceRefinerScript(scripts.Script):
         with switch_model_context(checkpoint_name):
             i2i = self._create_i2i_process(
                 p, image, mask_pil, denoising_strength, steps, cfg_scale,
-                sampler_name,
+                sampler_name, checkpoint_name,
                 prompt_str, negative_prompt_str, mask_blur,
                 inpaint_full_res, inpaint_full_res_padding,
             )
