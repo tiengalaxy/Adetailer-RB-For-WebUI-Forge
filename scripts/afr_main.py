@@ -799,24 +799,34 @@ def get_checkpoint_list():
     checkpoints = []
     try:
         from modules import sd_models
+        if hasattr(sd_models, "checkpoint_tiles"):
+            checkpoints = list(sd_models.checkpoint_tiles())
+            if checkpoints:
+                return checkpoints
+    except Exception as e:
+        print(f"[AFR] checkpoint_tiles failed: {e}")
+    try:
+        from modules import sd_models
+        if hasattr(sd_models, "checkpoints_list") and sd_models.checkpoints_list:
+            checkpoints = list(sd_models.checkpoints_list.keys())
+            if checkpoints:
+                return checkpoints
+    except Exception as e:
+        print(f"[AFR] checkpoints_list keys failed: {e}")
+    try:
+        from modules import sd_models
         if hasattr(sd_models, "checkpoint_titles"):
             checkpoints = list(sd_models.checkpoint_titles())
-        elif hasattr(sd_models, "get_checkpoint_names"):
-            checkpoints = list(sd_models.get_checkpoint_names())
+            if checkpoints:
+                return checkpoints
     except Exception as e:
-        print(f"[AFR] Failed to get checkpoint list via sd_models: {e}")
-    if not checkpoints:
-        try:
-            checkpoints = list(shared.opts.data.get("sd_model_checkpoint_options", []))
-        except Exception:
-            pass
-    if not checkpoints:
-        try:
-            current = getattr(shared.opts, "sd_model_checkpoint", None)
-            if current:
-                checkpoints = [current]
-        except Exception:
-            pass
+        print(f"[AFR] checkpoint_titles failed: {e}")
+    try:
+        current = getattr(shared.opts, "sd_model_checkpoint", None)
+        if current:
+            return [current]
+    except Exception:
+        pass
     return checkpoints
 
 
