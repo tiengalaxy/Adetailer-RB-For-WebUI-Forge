@@ -39,12 +39,14 @@ DEPENDENCIES = {
     "mediapipe": "mediapipe>=0.10.0,<0.11.0",
     "cv2": "opencv-python>=4.6.0",
     "numpy": "numpy>=1.21.0",
+    "ultralytics": "ultralytics>=8.0.0",
 }
 
 
 for import_name, pip_spec in DEPENDENCIES.items():
     if USE_LAUNCH_MODULE:
-        if not launch.is_installed(import_name if import_name != "cv2" else "opencv-python"):
+        check_name = import_name if import_name != "cv2" else "opencv-python"
+        if not launch.is_installed(check_name):
             print(f"[AFR] Installing {pip_spec} ...")
             launch.run_pip(f"install {pip_spec}", f"AFR dependency: {pip_spec}")
     else:

@@ -19,7 +19,7 @@ from modules.processing import (
 )
 
 
-AFR_VERSION = "1.2.0"
+AFR_VERSION = "2.0.0"
 
 AFR_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 AFR_MODEL_DIR = os.path.join(AFR_DIR, "models")
@@ -29,21 +29,35 @@ FACE_LANDMARKER_MODEL_URLS = [
 ]
 FACE_LANDMARKER_MODEL_PATH = os.path.join(AFR_MODEL_DIR, "face_landmarker.task")
 
+YOLO_FACE_MODEL_URLS = [
+    "https://github.com/derronqi/yolov8-face/releases/download/v0.0.0/yolov8n-face.pt",
+    "https://huggingface.co/Bingsu/yolov8n-face/resolve/main/yolov8n-face.pt",
+]
+YOLO_FACE_MODEL_PATH = os.path.join(AFR_MODEL_DIR, "yolov8n-face.pt")
+
+DETECTION_MODES = ["mediapipe", "yolo", "haar"]
+
 LANG_EN = {
     "title": "Advanced Face Refiner",
     "main_accordion": "Advanced Face Refiner (AFR)",
     "enable": "Enable",
     "enable_afr": "Enable AFR",
+    "detection_model": "Detection Model",
+    "detection_model_desc": "mediapipe = best for real faces, yolo = best for anime/cartoon, haar = fallback",
     "pass1": "Pass 1 - Structure Correction",
     "pass1_denoising": "Pass 1 Denoising Strength",
     "pass1_mask_dilation": "Pass 1 Mask Dilation",
     "pass1_steps": "Pass 1 Steps (0 = use parent)",
     "pass1_cfg": "Pass 1 CFG Scale (0 = use parent)",
+    "pass1_sampler": "Pass 1 Sampler (Use parent)",
+    "pass1_checkpoint": "Pass 1 Checkpoint (Use parent)",
     "pass2": "Pass 2 - Detail Refinement",
     "pass2_denoising": "Pass 2 Denoising Strength",
     "pass2_mask_dilation": "Pass 2 Mask Dilation",
     "pass2_steps": "Pass 2 Steps (0 = use parent)",
     "pass2_cfg": "Pass 2 CFG Scale (0 = use parent)",
+    "pass2_sampler": "Pass 2 Sampler (Use parent)",
+    "pass2_checkpoint": "Pass 2 Checkpoint (Use parent)",
     "face_prompts": "Face Prompts",
     "face_prompt": "Face Prompt",
     "face_prompt_placeholder": "detailed face, beautiful eyes, sharp focus, high quality",
@@ -70,6 +84,12 @@ LANG_EN = {
     "facemesh_failed": "FaceMesh detection failed: {err}",
     "postprocess_error": "Error in postprocess_image: {err}",
     "loaded": "Advanced Face Refiner v{ver} loaded.",
+    "use_parent": "Use parent",
+    "switching_model": "Switching model to: {model}",
+    "model_switch_failed": "Failed to switch model: {err}",
+    "yolo_download": "Downloading YOLO face model...",
+    "yolo_failed": "YOLO detection failed: {err}",
+    "yolo_detected": "YOLO detected {count} face(s)",
 }
 
 LANG_ZH = {
@@ -77,16 +97,22 @@ LANG_ZH = {
     "main_accordion": "高级面部修复器 (AFR)",
     "enable": "启用",
     "enable_afr": "启用 AFR",
+    "detection_model": "检测模型",
+    "detection_model_desc": "mediapipe = 适合真人, yolo = 适合动漫/卡通, haar = 备用",
     "pass1": "第1阶段 - 结构修正",
     "pass1_denoising": "第1阶段重绘强度",
     "pass1_mask_dilation": "第1阶段掩码膨胀",
     "pass1_steps": "第1阶段步数 (0=使用父设置)",
     "pass1_cfg": "第1阶段CFG (0=使用父设置)",
+    "pass1_sampler": "第1阶段采样器 (使用父设置)",
+    "pass1_checkpoint": "第1阶段大模型 (使用父设置)",
     "pass2": "第2阶段 - 细节精修",
     "pass2_denoising": "第2阶段重绘强度",
     "pass2_mask_dilation": "第2阶段掩码膨胀",
     "pass2_steps": "第2阶段步数 (0=使用父设置)",
     "pass2_cfg": "第2阶段CFG (0=使用父设置)",
+    "pass2_sampler": "第2阶段采样器 (使用父设置)",
+    "pass2_checkpoint": "第2阶段大模型 (使用父设置)",
     "face_prompts": "面部提示词",
     "face_prompt": "面部正面提示词",
     "face_prompt_placeholder": "精致面部,美丽眼睛,锐利焦点,高质量",
@@ -113,6 +139,12 @@ LANG_ZH = {
     "facemesh_failed": "FaceMesh 检测失败: {err}",
     "postprocess_error": "后处理出错: {err}",
     "loaded": "高级面部修复器 v{ver} 已加载。",
+    "use_parent": "使用父设置",
+    "switching_model": "切换模型至: {model}",
+    "model_switch_failed": "切换模型失败: {err}",
+    "yolo_download": "正在下载 YOLO 人脸模型...",
+    "yolo_failed": "YOLO 检测失败: {err}",
+    "yolo_detected": "YOLO 检测到 {count} 张人脸",
 }
 
 LANG_JA = {
@@ -120,16 +152,22 @@ LANG_JA = {
     "main_accordion": "高度な顔修正器 (AFR)",
     "enable": "有効化",
     "enable_afr": "AFRを有効化",
+    "detection_model": "検出モデル",
+    "detection_model_desc": "mediapipe = 実写向け, yolo = アニメ/カートゥーン向け, haar = フォールバック",
     "pass1": "第1段階 - 構造修正",
     "pass1_denoising": "第1段階のノイズ除去強度",
     "pass1_mask_dilation": "第1段階のマスク膨張",
     "pass1_steps": "第1段階のステップ数 (0=親設定)",
     "pass1_cfg": "第1段階のCFGスケール (0=親設定)",
+    "pass1_sampler": "第1段階のサンプラー (親設定を使用)",
+    "pass1_checkpoint": "第1段階のチェックポイント (親設定を使用)",
     "pass2": "第2段階 - ディテール精錬",
     "pass2_denoising": "第2段階のノイズ除去強度",
     "pass2_mask_dilation": "第2段階のマスク膨張",
     "pass2_steps": "第2段階のステップ数 (0=親設定)",
     "pass2_cfg": "第2段階のCFGスケール (0=親設定)",
+    "pass2_sampler": "第2段階のサンプラー (親設定を使用)",
+    "pass2_checkpoint": "第2段階のチェックポイント (親設定を使用)",
     "face_prompts": "顔のプロンプト",
     "face_prompt": "顔の正のプロンプト",
     "face_prompt_placeholder": "詳細な顔,美しい目,シャープなフォーカス,高品質",
@@ -156,6 +194,12 @@ LANG_JA = {
     "facemesh_failed": "FaceMesh検出に失敗: {err}",
     "postprocess_error": "後処理でエラー: {err}",
     "loaded": "高度な顔修正器 v{ver} を読み込みました。",
+    "use_parent": "親設定を使用",
+    "switching_model": "モデルを切り替え: {model}",
+    "model_switch_failed": "モデルの切り替えに失敗: {err}",
+    "yolo_download": "YOLO顔モデルをダウンロード中...",
+    "yolo_failed": "YOLO検出に失敗: {err}",
+    "yolo_detected": "YOLOが{count}人の顔を検出",
 }
 
 
@@ -236,6 +280,28 @@ def change_torch_load():
         torch.load = orig
 
 
+@contextmanager
+def switch_model_context(checkpoint_name):
+    if checkpoint_name is None:
+        yield
+        return
+    try:
+        from modules import sd_models
+        current_info = getattr(shared.opts, "sd_model_checkpoint", None)
+        if current_info == checkpoint_name:
+            yield
+            return
+        print(f"[AFR] Switching model to: {checkpoint_name}")
+        sd_models.load_model(checkpoint_name)
+        yield
+        print(f"[AFR] Restoring model to: {current_info}")
+        sd_models.load_model(current_info)
+    except Exception as e:
+        print(f"[AFR] Model switch failed: {e}")
+        traceback.print_exc()
+        yield
+
+
 def to_pil_image(image_input) -> Image.Image:
     if isinstance(image_input, Image.Image):
         return image_input.convert("RGB")
@@ -270,6 +336,25 @@ def ensure_face_landmarker_model() -> str:
             if os.path.exists(FACE_LANDMARKER_MODEL_PATH):
                 os.remove(FACE_LANDMARKER_MODEL_PATH)
     raise RuntimeError(f"[AFR] Failed to download FaceLandmarker model from all URLs. Last error: {last_error}")
+
+
+def ensure_yolo_face_model() -> str:
+    if os.path.exists(YOLO_FACE_MODEL_PATH):
+        return YOLO_FACE_MODEL_PATH
+    os.makedirs(AFR_MODEL_DIR, exist_ok=True)
+    last_error = None
+    for url in YOLO_FACE_MODEL_URLS:
+        print(f"[AFR] Downloading YOLO face model from {url}...")
+        try:
+            urllib.request.urlretrieve(url, YOLO_FACE_MODEL_PATH)
+            print(f"[AFR] YOLO model downloaded to {YOLO_FACE_MODEL_PATH}")
+            return YOLO_FACE_MODEL_PATH
+        except Exception as e:
+            print(f"[AFR] YOLO download failed from {url}: {e}")
+            last_error = e
+            if os.path.exists(YOLO_FACE_MODEL_PATH):
+                os.remove(YOLO_FACE_MODEL_PATH)
+    raise RuntimeError(f"[AFR] Failed to download YOLO face model. Last error: {last_error}")
 
 
 def _detect_mediapipe_legacy(image_cv2: np.ndarray, min_detection_confidence: float):
@@ -336,6 +421,117 @@ def _detect_mediapipe_task_api(image_cv2: np.ndarray, min_detection_confidence: 
 
     detector.close()
     return faces
+
+
+def _detect_yolo_face(image_cv2: np.ndarray, min_detection_confidence: float):
+    try:
+        from ultralytics import YOLO
+    except ImportError:
+        print("[AFR] ultralytics not installed, trying to install...")
+        try:
+            import subprocess
+            import sys
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "ultralytics"],
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            from ultralytics import YOLO
+        except Exception as e:
+            raise ImportError(f"[AFR] Failed to install ultralytics: {e}")
+
+    model_path = ensure_yolo_face_model()
+    model = YOLO(model_path)
+
+    results = model(image_cv2, conf=min_detection_confidence, verbose=False)
+
+    faces = []
+    h, w = image_cv2.shape[:2]
+    for result in results:
+        boxes = result.boxes
+        if boxes is None:
+            continue
+        for box in boxes:
+            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().astype(int)
+            x1 = max(0, x1)
+            y1 = max(0, y1)
+            x2 = min(w, x2)
+            y2 = min(h, y2)
+            rw = x2 - x1
+            rh = y2 - y1
+            if rw <= 0 or rh <= 0:
+                continue
+            kpts = box.keypoints
+            if kpts is not None and len(kpts) > 0:
+                kpts_data = kpts[0].cpu().numpy()
+                landmarks = _yolo_keypoints_to_landmarks(kpts_data, x1, y1, rw, rh, (h, w))
+            else:
+                landmarks = _generate_approx_landmarks(x1, y1, rw, rh, (h, w))
+            faces.append(landmarks)
+    return faces
+
+
+def _yolo_keypoints_to_landmarks(kpts_data, rx, ry, rw, rh, image_shape):
+    landmarks = [(0, 0)] * 478
+    h, w = image_shape[:2]
+
+    if kpts_data.ndim == 2 and kpts_data.shape[0] >= 5:
+        points = kpts_data[:, :2]
+        le_x, le_y = int(np.clip(points[0][0], 0, w - 1)), int(np.clip(points[0][1], 0, h - 1))
+        re_x, re_y = int(np.clip(points[1][0], 0, w - 1)), int(np.clip(points[1][1], 0, h - 1))
+        n_x, n_y = int(np.clip(points[2][0], 0, w - 1)), int(np.clip(points[2][1], 0, h - 1))
+        ml_x, ml_y = int(np.clip(points[3][0], 0, w - 1)), int(np.clip(points[3][1], 0, h - 1))
+        mr_x, mr_y = int(np.clip(points[4][0], 0, w - 1)), int(np.clip(points[4][1], 0, h - 1))
+
+        cx, cy = rx + rw / 2, ry + rh / 2
+        a, b = rw / 2, rh / 2
+        for i, idx in enumerate(FACE_OVAL_LANDMARKS):
+            if idx < 478:
+                angle = 2 * np.pi * i / len(FACE_OVAL_LANDMARKS) - np.pi / 2
+                px = int(cx + a * np.cos(angle))
+                py = int(cy + b * np.sin(angle))
+                landmarks[idx] = (px, py)
+
+        le_w = max(int(rw * 0.13), 3)
+        le_h = max(int(rh * 0.04), 2)
+        for i, idx in enumerate(LEFT_EYE_LANDMARKS):
+            if idx < 478:
+                angle = 2 * np.pi * i / len(LEFT_EYE_LANDMARKS)
+                landmarks[idx] = (int(le_x + le_w * np.cos(angle)), int(le_y + le_h * np.sin(angle)))
+
+        for i, idx in enumerate(RIGHT_EYE_LANDMARKS):
+            if idx < 478:
+                angle = 2 * np.pi * i / len(RIGHT_EYE_LANDMARKS)
+                landmarks[idx] = (int(re_x + le_w * np.cos(angle)), int(re_y + le_h * np.sin(angle)))
+
+        for i, idx in enumerate(LEFT_EYEBROW_LANDMARKS):
+            if idx < 478:
+                px = int(le_x - le_w + 2 * le_w * i / len(LEFT_EYEBROW_LANDMARKS))
+                py = int(le_y - rh * 0.06 - rh * 0.03 * np.sin(np.pi * i / len(LEFT_EYEBROW_LANDMARKS)))
+                landmarks[idx] = (px, py)
+
+        for i, idx in enumerate(RIGHT_EYEBROW_LANDMARKS):
+            if idx < 478:
+                px = int(re_x - le_w + 2 * le_w * i / len(RIGHT_EYEBROW_LANDMARKS))
+                py = int(re_y - rh * 0.06 - rh * 0.03 * np.sin(np.pi * i / len(RIGHT_EYEBROW_LANDMARKS)))
+                landmarks[idx] = (px, py)
+
+        m_w = max(int(abs(mr_x - ml_x) * 0.6), 3)
+        m_h = max(int(rh * 0.05), 2)
+        m_cx = (ml_x + mr_x) / 2
+        m_cy = (ml_y + mr_y) / 2
+        for i, idx in enumerate(LIPS_OUTER_LANDMARKS):
+            if idx < 478:
+                angle = 2 * np.pi * i / len(LIPS_OUTER_LANDMARKS)
+                landmarks[idx] = (int(m_cx + m_w * np.cos(angle)), int(m_cy + m_h * np.sin(angle)))
+
+        n_w = max(int(rw * 0.08), 2)
+        n_h = max(int(rh * 0.06), 2)
+        for i, idx in enumerate(NOSE_LANDMARKS):
+            if idx < 478:
+                angle = 2 * np.pi * i / len(NOSE_LANDMARKS)
+                landmarks[idx] = (int(n_x + n_w * np.cos(angle)), int(n_y + n_h * np.sin(angle)))
+    else:
+        landmarks = _generate_approx_landmarks(rx, ry, rw, rh, image_shape)
+
+    return landmarks
 
 
 def _detect_opencv_haar(image_cv2: np.ndarray, min_detection_confidence: float):
@@ -419,37 +615,51 @@ def _generate_approx_landmarks(rx: int, ry: int, rw: int, rh: int, image_shape: 
     return landmarks
 
 
-def detect_faces_facemesh(image_cv2: np.ndarray, min_detection_confidence: float = 0.5):
-    print("[AFR] Attempting face detection...")
+def detect_faces(image_cv2: np.ndarray, detection_model: str = "mediapipe", min_detection_confidence: float = 0.5):
+    print(f"[AFR] Attempting face detection with model: {detection_model}")
 
-    try:
-        result = _detect_mediapipe_legacy(image_cv2, min_detection_confidence)
-        if result is not None:
-            print(f"[AFR] Using mediapipe legacy API (mp.solutions), detected {len(result)} face(s)")
+    if detection_model == "yolo":
+        try:
+            result = _detect_yolo_face(image_cv2, min_detection_confidence)
+            print(f"[AFR] YOLO detected {len(result)} face(s)")
             return result
-    except Exception as e:
-        print(f"[AFR] Legacy mediapipe API not available: {e}")
+        except Exception as e:
+            print(f"[AFR] YOLO detection failed: {e}")
+            traceback.print_exc()
+            print("[AFR] Falling back to mediapipe...")
 
-    try:
-        result = _detect_mediapipe_task_api(image_cv2, min_detection_confidence)
-        print(f"[AFR] Using mediapipe Task API (FaceLandmarker), detected {len(result)} face(s)")
-        return result
-    except Exception as e:
-        print(f"[AFR] Mediapipe Task API failed: {e}")
-        traceback.print_exc()
+    if detection_model == "mediapipe" or detection_model == "yolo":
+        try:
+            result = _detect_mediapipe_legacy(image_cv2, min_detection_confidence)
+            if result is not None:
+                print(f"[AFR] Using mediapipe legacy API, detected {len(result)} face(s)")
+                return result
+        except Exception as e:
+            print(f"[AFR] Legacy mediapipe API not available: {e}")
+
+        try:
+            result = _detect_mediapipe_task_api(image_cv2, min_detection_confidence)
+            print(f"[AFR] Using mediapipe Task API, detected {len(result)} face(s)")
+            return result
+        except Exception as e:
+            print(f"[AFR] Mediapipe Task API failed: {e}")
+            traceback.print_exc()
+
+        if detection_model == "mediapipe":
+            print("[AFR] Falling back to Haar cascade...")
 
     try:
         result = _detect_opencv_haar(image_cv2, min_detection_confidence)
         if result is not None:
-            print(f"[AFR] Using OpenCV Haar cascade fallback, detected {len(result)} face(s)")
+            print(f"[AFR] Using OpenCV Haar cascade, detected {len(result)} face(s)")
             return result
     except Exception as e:
-        print(f"[AFR] OpenCV Haar cascade fallback failed: {e}")
+        print(f"[AFR] OpenCV Haar cascade failed: {e}")
         traceback.print_exc()
 
     raise ImportError(
         "[AFR] All face detection methods failed! "
-        "Please ensure mediapipe is installed correctly: pip install mediapipe"
+        "Please ensure mediapipe or ultralytics is installed correctly."
     )
 
 
@@ -553,6 +763,24 @@ def mask_cv2_to_pil(mask_cv2: np.ndarray) -> Image.Image:
     return pil_mask
 
 
+def get_checkpoint_list():
+    try:
+        from modules import sd_models
+        checkpoint_list = sd_models.checkpoint_titles()
+        return list(checkpoint_list)
+    except Exception:
+        return []
+
+
+def get_sampler_list():
+    try:
+        from modules import sd_samplers
+        samplers = [s.name for s in sd_samplers.all_samplers]
+        return samplers
+    except Exception:
+        return []
+
+
 class AdvancedFaceRefinerScript(scripts.Script):
     def __init__(self):
         super().__init__()
@@ -568,9 +796,32 @@ class AdvancedFaceRefinerScript(scripts.Script):
         self.lang = get_lang()
         lang = self.lang
 
+        checkpoints = get_checkpoint_list()
+        samplers = get_sampler_list()
+        use_parent_label = lang["use_parent"]
+
         with gr.Accordion(lang["main_accordion"], open=False, elem_id="afr_main_accordion"):
             with gr.Accordion(lang["enable"], open=True, elem_id="afr_enabled"):
                 enabled = gr.Checkbox(label=lang["enable_afr"], value=False, elem_id="afr_enable_checkbox")
+
+            with gr.Accordion(lang["detection_settings"], open=True):
+                detection_model = gr.Dropdown(
+                    choices=DETECTION_MODES,
+                    value="mediapipe",
+                    label=lang["detection_model"],
+                    elem_id="afr_detection_model",
+                )
+                gr.HTML(f"<small>{lang['detection_model_desc']}</small>")
+                min_detection_confidence = gr.Slider(
+                    minimum=0.1, maximum=1.0, step=0.05, value=0.5,
+                    label=lang["min_detection_confidence"],
+                    elem_id="afr_min_confidence",
+                )
+                max_faces = gr.Slider(
+                    minimum=1, maximum=10, step=1, value=4,
+                    label=lang["max_faces"],
+                    elem_id="afr_max_faces",
+                )
 
             with gr.Accordion(lang["pass1"], open=True):
                 pass1_denoising = gr.Slider(
@@ -592,6 +843,18 @@ class AdvancedFaceRefinerScript(scripts.Script):
                     minimum=1.0, maximum=30.0, step=0.5, value=0,
                     label=lang["pass1_cfg"],
                     elem_id="afr_pass1_cfg",
+                )
+                pass1_sampler = gr.Dropdown(
+                    choices=[use_parent_label] + samplers,
+                    value=use_parent_label,
+                    label=lang["pass1_sampler"],
+                    elem_id="afr_pass1_sampler",
+                )
+                pass1_checkpoint = gr.Dropdown(
+                    choices=[use_parent_label] + checkpoints,
+                    value=use_parent_label,
+                    label=lang["pass1_checkpoint"],
+                    elem_id="afr_pass1_checkpoint",
                 )
 
             with gr.Accordion(lang["pass2"], open=True):
@@ -615,6 +878,18 @@ class AdvancedFaceRefinerScript(scripts.Script):
                     label=lang["pass2_cfg"],
                     elem_id="afr_pass2_cfg",
                 )
+                pass2_sampler = gr.Dropdown(
+                    choices=[use_parent_label] + samplers,
+                    value=use_parent_label,
+                    label=lang["pass2_sampler"],
+                    elem_id="afr_pass2_sampler",
+                )
+                pass2_checkpoint = gr.Dropdown(
+                    choices=[use_parent_label] + checkpoints,
+                    value=use_parent_label,
+                    label=lang["pass2_checkpoint"],
+                    elem_id="afr_pass2_checkpoint",
+                )
 
             with gr.Accordion(lang["face_prompts"], open=True):
                 face_prompt = gr.Textbox(
@@ -631,16 +906,6 @@ class AdvancedFaceRefinerScript(scripts.Script):
                 )
 
             with gr.Accordion(lang["detection_settings"], open=False):
-                min_detection_confidence = gr.Slider(
-                    minimum=0.1, maximum=1.0, step=0.05, value=0.5,
-                    label=lang["min_detection_confidence"],
-                    elem_id="afr_min_confidence",
-                )
-                max_faces = gr.Slider(
-                    minimum=1, maximum=10, step=1, value=4,
-                    label=lang["max_faces"],
-                    elem_id="afr_max_faces",
-                )
                 mask_blur = gr.Slider(
                     minimum=0, maximum=64, step=1, value=4,
                     label=lang["inpaint_mask_blur"],
@@ -659,8 +924,11 @@ class AdvancedFaceRefinerScript(scripts.Script):
 
         return [
             enabled,
+            detection_model,
             pass1_denoising, pass1_mask_dilation, pass1_steps, pass1_cfg,
+            pass1_sampler, pass1_checkpoint,
             pass2_denoising, pass2_mask_dilation, pass2_steps, pass2_cfg,
+            pass2_sampler, pass2_checkpoint,
             face_prompt, face_negative_prompt,
             min_detection_confidence, max_faces, mask_blur,
             inpaint_full_res, inpaint_full_res_padding,
@@ -696,6 +964,18 @@ class AdvancedFaceRefinerScript(scripts.Script):
             subseed = p.all_subseeds[i % len(p.all_subseeds)]
         return seed, subseed
 
+    def _resolve_sampler(self, sampler_name: str, parent_sampler: str) -> str:
+        lang = self.lang
+        if sampler_name == lang["use_parent"] or not sampler_name:
+            return parent_sampler
+        return sampler_name
+
+    def _resolve_checkpoint(self, checkpoint_name: str) -> str | None:
+        lang = self.lang
+        if checkpoint_name == lang["use_parent"] or not checkpoint_name:
+            return None
+        return checkpoint_name
+
     def _create_i2i_process(
         self,
         p,
@@ -704,6 +984,7 @@ class AdvancedFaceRefinerScript(scripts.Script):
         denoising_strength: float,
         steps: int,
         cfg_scale: float,
+        sampler_name: str,
         prompt_str: str,
         negative_prompt_str: str,
         mask_blur: int,
@@ -715,6 +996,7 @@ class AdvancedFaceRefinerScript(scripts.Script):
 
         actual_steps = steps if steps > 0 else p.steps
         actual_cfg = cfg_scale if cfg_scale > 0 else p.cfg_scale
+        actual_sampler = sampler_name if sampler_name else p.sampler_name
 
         i2i = StableDiffusionProcessingImg2Img(
             init_images=[image],
@@ -737,7 +1019,7 @@ class AdvancedFaceRefinerScript(scripts.Script):
             subseed_strength=p.subseed_strength,
             seed_resize_from_h=p.seed_resize_from_h,
             seed_resize_from_w=p.seed_resize_from_w,
-            sampler_name=p.sampler_name,
+            sampler_name=actual_sampler,
             batch_size=1,
             n_iter=1,
             steps=actual_steps,
@@ -790,26 +1072,32 @@ class AdvancedFaceRefinerScript(scripts.Script):
         denoising_strength: float,
         steps: int,
         cfg_scale: float,
+        sampler_name: str,
+        checkpoint_name: str | None,
         prompt_str: str,
         negative_prompt_str: str,
         mask_blur: int,
         inpaint_full_res: bool,
         inpaint_full_res_padding: int,
     ) -> Image.Image:
-        i2i = self._create_i2i_process(
-            p, image, mask_pil, denoising_strength, steps, cfg_scale,
-            prompt_str, negative_prompt_str, mask_blur,
-            inpaint_full_res, inpaint_full_res_padding,
-        )
+        with switch_model_context(checkpoint_name):
+            i2i = self._create_i2i_process(
+                p, image, mask_pil, denoising_strength, steps, cfg_scale,
+                sampler_name,
+                prompt_str, negative_prompt_str, mask_blur,
+                inpaint_full_res, inpaint_full_res_padding,
+            )
 
-        print(f"[AFR] Starting inpaint pass: denoise={denoising_strength}, steps={i2i.steps}, cfg={i2i.cfg_scale}")
-        print(f"[AFR] Prompt: {prompt_str[:80]}...")
-        print(f"[AFR] Image size: {image.size}, Mask mode: {'full_res' if inpaint_full_res else 'whole'}")
+            print(f"[AFR] Starting inpaint: denoise={denoising_strength}, steps={i2i.steps}, cfg={i2i.cfg_scale}, sampler={i2i.sampler_name}")
+            if checkpoint_name:
+                print(f"[AFR] Using checkpoint: {checkpoint_name}")
+            print(f"[AFR] Prompt: {prompt_str[:80]}...")
+            print(f"[AFR] Image size: {image.size}, Mask mode: {'full_res' if inpaint_full_res else 'whole'}")
 
-        with change_torch_load():
-            with pause_tqdm():
-                with preserve_prompts(p):
-                    processed = process_images(i2i)
+            with change_torch_load():
+                with pause_tqdm():
+                    with preserve_prompts(p):
+                        processed = process_images(i2i)
 
         if processed is None:
             print("[AFR] process_images returned None!")
@@ -847,21 +1135,24 @@ class AdvancedFaceRefinerScript(scripts.Script):
 
         print(f"[AFR] postprocess_image called, args count: {len(args)}")
 
-        if len(args) < 16:
-            print(f"[AFR] ERROR: Expected 16 args, got {len(args)}. UI may not be connected properly.")
+        if len(args) < 20:
+            print(f"[AFR] ERROR: Expected 20 args, got {len(args)}. UI may not be connected properly.")
             print(f"[AFR] Args received: {args}")
             return
 
         (
             enabled,
+            detection_model,
             pass1_denoising, pass1_mask_dilation, pass1_steps, pass1_cfg,
+            pass1_sampler, pass1_checkpoint,
             pass2_denoising, pass2_mask_dilation, pass2_steps, pass2_cfg,
+            pass2_sampler, pass2_checkpoint,
             face_prompt, face_negative_prompt,
             min_detection_confidence, max_faces, mask_blur,
             inpaint_full_res, inpaint_full_res_padding,
         ) = args
 
-        print(f"[AFR] Enabled: {enabled}")
+        print(f"[AFR] Enabled: {enabled}, Detection model: {detection_model}")
 
         if not enabled:
             return
@@ -882,7 +1173,7 @@ class AdvancedFaceRefinerScript(scripts.Script):
         image_cv2 = pil_to_cv2(image_pil)
 
         try:
-            faces = detect_faces_facemesh(image_cv2, min_detection_confidence)
+            faces = detect_faces(image_cv2, detection_model, min_detection_confidence)
         except Exception as e:
             print(f"[AFR] {self.lang['facemesh_failed'].format(err=e)}")
             traceback.print_exc()
@@ -898,6 +1189,11 @@ class AdvancedFaceRefinerScript(scripts.Script):
         idx = getattr(pp, "index", 0)
         p._afr_idx = idx
         p._afr_processing = True
+
+        pass1_sampler_resolved = self._resolve_sampler(pass1_sampler, p.sampler_name)
+        pass2_sampler_resolved = self._resolve_sampler(pass2_sampler, p.sampler_name)
+        pass1_checkpoint_resolved = self._resolve_checkpoint(pass1_checkpoint)
+        pass2_checkpoint_resolved = self._resolve_checkpoint(pass2_checkpoint)
 
         try:
             current_image = image_pil
@@ -928,6 +1224,7 @@ class AdvancedFaceRefinerScript(scripts.Script):
                     pass1_result = self._run_inpaint_pass(
                         p, current_image, face_mask_pil,
                         float(pass1_denoising), int(pass1_steps), float(pass1_cfg),
+                        pass1_sampler_resolved, pass1_checkpoint_resolved,
                         pass1_prompt, pass1_neg_prompt,
                         int(mask_blur), bool(inpaint_full_res), int(inpaint_full_res_padding),
                     )
@@ -955,6 +1252,7 @@ class AdvancedFaceRefinerScript(scripts.Script):
                     pass2_result = self._run_inpaint_pass(
                         p, current_image, detail_mask_pil,
                         float(pass2_denoising), int(pass2_steps), float(pass2_cfg),
+                        pass2_sampler_resolved, pass2_checkpoint_resolved,
                         pass1_prompt, pass1_neg_prompt,
                         int(mask_blur), bool(inpaint_full_res), int(inpaint_full_res_padding),
                     )
